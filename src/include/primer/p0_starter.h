@@ -152,7 +152,7 @@ class RowMatrixOperations {
       for (int j = 0; j < cols_2; j++) {
         int val = 0;
         for (int k = 0; k < cols_1; k++) {
-          val += mat1->GetElem(i, k) + mat2->GetElem(k, j);
+          val += mat1->GetElem(i, k) * mat2->GetElem(k, j);
         }
         res->SetElem(i, j, val);
       }
