@@ -21,6 +21,12 @@
 
 namespace bustub {
 
+typedef struct page {
+  bool reference_bit;
+  int page_id;
+  int pin_num;
+} PageNode;
+
 /**
  * LRUReplacer implements the lru replacement policy, which approximates the Least Recently Used policy.
  */
@@ -47,6 +53,11 @@ class LRUReplacer : public Replacer {
 
  private:
   // TODO(student): implement me!
+  std::mutex mutex;
+  std::vector<PageNode*> pages;
+  int size;
+  int capacity;
+  uint64_t current_index;
 };
 
 }  // namespace bustub
