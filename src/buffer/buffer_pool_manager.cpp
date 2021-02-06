@@ -83,6 +83,7 @@ Page *BufferPoolManager::FetchPageImpl(page_id_t page_id) {
 }
 
 bool BufferPoolManager::UnpinPageImpl(page_id_t page_id, bool is_dirty) {
+  std::lock_guard<std::mutex> lock(latch_);
   std::unordered_map<page_id_t, frame_id_t>::iterator it;
   it = page_table_.find(page_id);
   if (it == page_table_.end()) {
@@ -101,6 +102,7 @@ bool BufferPoolManager::UnpinPageImpl(page_id_t page_id, bool is_dirty) {
 }
 
 bool BufferPoolManager::FlushPageImpl(page_id_t page_id) {
+  std::lock_guard<std::mutex> lock(latch_);
   // Make sure you call DiskManager::WritePage!
   std::unordered_map<page_id_t, frame_id_t>::iterator it;
   it = page_table_.find(page_id);
@@ -113,6 +115,8 @@ bool BufferPoolManager::FlushPageImpl(page_id_t page_id) {
 }
 
 Page *BufferPoolManager::NewPageImpl(page_id_t *page_id) {
+  // std::lock_guard<std::mutex> lock(latch_);
+  // TODO: might have some dead lock issue here, i think, because the test freeze when i add lock here, modify later
   // 0.   Make sure you call DiskManager::AllocatePage!
   page_id_t temp_page_id = disk_manager_->AllocatePage();
   frame_id_t frame_id;
@@ -146,6 +150,7 @@ Page *BufferPoolManager::NewPageImpl(page_id_t *page_id) {
 }
 
 bool BufferPoolManager::DeletePageImpl(page_id_t page_id) {
+  std::lock_guard<std::mutex> lock(latch_);
   // 0.   Make sure you call DiskManager::DeallocatePage!
   disk_manager_->DeallocatePage(page_id);
   // 1.   Search the page table for the requested page (P).
@@ -168,6 +173,7 @@ bool BufferPoolManager::DeletePageImpl(page_id_t page_id) {
 }
 
 void BufferPoolManager::FlushAllPagesImpl() {
+  std::lock_guard<std::mutex> lock(latch_);
   // You can do it!
   for (size_t i = 0; i < pool_size_; i++) {
     page_id_t page_id = pages_[i].page_id_;
