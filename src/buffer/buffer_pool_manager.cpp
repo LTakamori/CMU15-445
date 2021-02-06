@@ -71,7 +71,7 @@ Page *BufferPoolManager::FetchPageImpl(page_id_t page_id) {
 
   // 3.     Delete R from the page table and insert P.
   page_table_.erase(pages_[replace_frame].page_id_);
-  page_table_.insert(std::unordered_map<page_id_t, frame_id_t>::value_type(page_id, replace_frame));
+  page_table_.emplace(page_id, replace_frame);
 
   // 4.     Update P's metadata, read in the page content from disk, and then return a pointer to P.
   pages_[replace_frame].page_id_ = page_id;
@@ -108,7 +108,9 @@ bool BufferPoolManager::FlushPageImpl(page_id_t page_id) {
     return false;
   }
   frame_id_t frame_id = it->second;
-  disk_manager_->WritePage(page_id, pages_[frame_id].GetData());
+//  auto res = pages_[frame_id].GetData();
+//  std::cout << res;
+  disk_manager_->WritePage(page_id, pages_[frame_id].data_);
   return true;
 }
 
@@ -127,7 +129,10 @@ Page *BufferPoolManager::NewPageImpl(page_id_t *page_id) {
   } else {
     page_id_t temp;
     replacer_->Victim(&temp);  // victim 返回的是page id
-    frame_id = page_table_.find(temp) ->first;
+    frame_id = page_table_.find(temp)->second;
+    if (pages_[frame_id].is_dirty_) {
+      FlushPageImpl(temp);
+    }
     page_table_.erase(temp);
   }
   // 3.   Update P's metadata, zero out memory and add P to the page table.
@@ -169,7 +174,8 @@ void BufferPoolManager::FlushAllPagesImpl() {
   for (size_t i = 0; i < pool_size_; i++) {
     page_id_t page_id = pages_[i].page_id_;
     if (page_id != INVALID_PAGE_ID) {
-      disk_manager_->WritePage(page_id, pages_[i].GetData());
+      // disk_manager_->WritePage(page_id, pages_[i].GetData());
+      FlushPageImpl(page_id);
     }
   }
 }

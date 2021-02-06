@@ -116,15 +116,20 @@ TEST(BufferPoolManagerTest, SampleTest) {
 
   // Scenario: After unpinning pages {0, 1, 2, 3, 4} and pinning another 4 new pages,
   // there would still be one buffer page left for reading page 0.
+  // TODO: but there is no flush here? why would it be written back to disk? I mean, what if i dont wanna keep the change?
+  EXPECT_EQ(0, strcmp(page0->GetData(), "Hello"));
   for (int i = 0; i < 5; ++i) {
     EXPECT_EQ(true, bpm->UnpinPage(i, true));
   }
+  EXPECT_EQ(0, strcmp(page0->GetData(), "Hello"));
+
   for (int i = 0; i < 4; ++i) {
     EXPECT_NE(nullptr, bpm->NewPage(&page_id_temp));
   }
-
   // Scenario: We should be able to fetch the data we wrote a while ago.
   page0 = bpm->FetchPage(0);
+  // auto res = page0->GetData();
+  // std::cout << res;
   EXPECT_EQ(0, strcmp(page0->GetData(), "Hello"));
 
   // Scenario: If we unpin page 0 and then make a new page, all the buffer pages should
