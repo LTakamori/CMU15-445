@@ -66,7 +66,7 @@ Page *BufferPoolManager::FetchPageImpl(page_id_t page_id) {
 
   // 2.     If R is dirty, write it back to the disk.
   if (pages_[replace_frame].IsDirty()) {
-    disk_manager_->WritePage(page_id, pages_[replace_frame].GetData());
+    disk_manager_->WritePage(pages_[replace_frame].page_id_, pages_[replace_frame].GetData());  // here !!! fuck u
   }
 
   // 3.     Delete R from the page table and insert P.
@@ -108,8 +108,6 @@ bool BufferPoolManager::FlushPageImpl(page_id_t page_id) {
     return false;
   }
   frame_id_t frame_id = it->second;
-//  auto res = pages_[frame_id].GetData();
-//  std::cout << res;
   disk_manager_->WritePage(page_id, pages_[frame_id].data_);
   return true;
 }

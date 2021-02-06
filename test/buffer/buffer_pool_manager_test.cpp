@@ -128,8 +128,6 @@ TEST(BufferPoolManagerTest, SampleTest) {
   }
   // Scenario: We should be able to fetch the data we wrote a while ago.
   page0 = bpm->FetchPage(0);
-  // auto res = page0->GetData();
-  // std::cout << res;
   EXPECT_EQ(0, strcmp(page0->GetData(), "Hello"));
 
   // Scenario: If we unpin page 0 and then make a new page, all the buffer pages should
