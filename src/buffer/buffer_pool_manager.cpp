@@ -77,6 +77,7 @@ Page *BufferPoolManager::FetchPageImpl(page_id_t page_id) {
   pages_[replace_frame].page_id_ = page_id;
   pages_[replace_frame].is_dirty_ = false;
   pages_[replace_frame].pin_count_ = 1;
+  replacer_->Pin(page_id);
   disk_manager_->ReadPage(page_id, pages_[replace_frame].data_);
   return pages_ + replace_frame;
 }
@@ -127,13 +128,14 @@ Page *BufferPoolManager::NewPageImpl(page_id_t *page_id) {
     page_id_t temp;
     replacer_->Victim(&temp);  // victim 返回的是page id
     frame_id = page_table_.find(temp) ->first;
-    page_table_.erase(pages_[frame_id].page_id_);
+    page_table_.erase(temp);
   }
   // 3.   Update P's metadata, zero out memory and add P to the page table.
   page_table_.emplace(temp_page_id, frame_id);
   pages_[frame_id].ResetMemory();
   pages_[frame_id].page_id_ = temp_page_id;
   pages_[frame_id].pin_count_ = 1;  // todo 1 or 0?
+  replacer_->Pin(temp_page_id);
   pages_[frame_id].is_dirty_ = false;
   // 4.   Set the page ID output parameter. Return a pointer to P.
   *page_id = temp_page_id;
