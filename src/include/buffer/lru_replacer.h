@@ -24,7 +24,7 @@ namespace bustub {
 typedef struct page {
   bool reference_bit;
   int page_id;
-  int pin_num;
+  bool is_pinned;
 } PageNode;
 
 /**

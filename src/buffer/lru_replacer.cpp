@@ -33,7 +33,7 @@ bool LRUReplacer::Victim(frame_id_t *frame_id) {
     return false;
   }
   while(true) {
-    if (pages[current_index]->pin_num != 0) {
+    if (pages[current_index]->is_pinned) {
       current_index = (current_index + 1) % pages.size();
       continue;
     }
@@ -59,10 +59,10 @@ void LRUReplacer::Pin(frame_id_t frame_id) {
 
   for (auto page : pages) {
     if (page -> page_id == frame_id) {
-      page -> pin_num++;
-      if (page -> pin_num == 1) {
+      if (!page->is_pinned) {
         size--;
       }
+      page -> is_pinned = true;
       return;
     }
   }
@@ -73,11 +73,11 @@ void LRUReplacer::Unpin(frame_id_t frame_id) {
 
   for (auto page : pages) {
     if (page -> page_id == frame_id) {
-      if (page -> pin_num != 0) {
+      if (page->is_pinned) {
         page -> reference_bit = true;
         size++;
       }
-      page -> pin_num = 0;
+      page -> is_pinned = false;
       return;
     }
   }
@@ -86,7 +86,7 @@ void LRUReplacer::Unpin(frame_id_t frame_id) {
   PageNode* temp = new PageNode;
   temp -> reference_bit = false;
   temp -> page_id = frame_id;
-  temp -> pin_num = 0;
+  temp -> is_pinned = false;
   pages.push_back(temp);
   size++;
 }
