@@ -59,7 +59,9 @@ Page *BufferPoolManager::FetchPageImpl(page_id_t page_id) {
     replace_frame = free_list_.front();
     free_list_.pop_front();
   } else {
-    replacer_->Victim(&replace_frame);
+    page_id_t temp;
+    replacer_->Victim(&temp);
+    replace_frame = page_table_.find(temp) -> second;
   }
 
   // 2.     If R is dirty, write it back to the disk.
@@ -68,7 +70,7 @@ Page *BufferPoolManager::FetchPageImpl(page_id_t page_id) {
   }
 
   // 3.     Delete R from the page table and insert P.
-  page_table_.erase(it);
+  page_table_.erase(pages_[replace_frame].page_id_);
   page_table_.insert(std::unordered_map<page_id_t, frame_id_t>::value_type(page_id, replace_frame));
 
   // 4.     Update P's metadata, read in the page content from disk, and then return a pointer to P.
@@ -122,7 +124,10 @@ Page *BufferPoolManager::NewPageImpl(page_id_t *page_id) {
     frame_id = free_list_.front();
     free_list_.pop_front();
   } else {
-    replacer_->Victim(&frame_id);
+    page_id_t temp;
+    replacer_->Victim(&temp);  // victim 返回的是page id
+    frame_id = page_table_.find(temp) ->first;
+    page_table_.erase(pages_[frame_id].page_id_);
   }
   // 3.   Update P's metadata, zero out memory and add P to the page table.
   page_table_.emplace(temp_page_id, frame_id);
