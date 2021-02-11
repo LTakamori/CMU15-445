@@ -236,14 +236,17 @@ void B_PLUS_TREE_INTERNAL_PAGE_TYPE::MoveAllTo(BPlusTreeInternalPage *recipient,
   BPlusTreeInternalPage* parent_page = reinterpret_cast<BPlusTreeInternalPage*>(page->GetData());
   int middle_index;
   for (int i = 0; i < parent_page->GetSize(); i++) {
-    // 没有运算符重载过 ==
+    // TODO: 没有运算符重载过 ==? fix here
     if(parent_page->KeyAt(i) == middle_key) {
       middle_index = i;
       break;
     }
   }
   parent_page->Remove(middle_index);
-  buffer_pool_manager->UnpinPage(GetParentPageId());
+  buffer_pool_manager->UnpinPage(GetParentPageId(), true);
+  for (int i = GetSize(); i > 0; i--) {
+    Remove(i);
+  }
 }
 
 /*****************************************************************************
