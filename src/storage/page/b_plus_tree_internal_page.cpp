@@ -175,13 +175,16 @@ void B_PLUS_TREE_INTERNAL_PAGE_TYPE::MoveHalfTo(BPlusTreeInternalPage *recipient
 INDEX_TEMPLATE_ARGUMENTS
 void B_PLUS_TREE_INTERNAL_PAGE_TYPE::CopyNFrom(MappingType *items, int size, BufferPoolManager *buffer_pool_manager) {
   // TODO: might out of range, and should deal with FetchPage fail situation;
+  int current_size;
   for (int i = 0; i < size; i++) {
+    current_size = GetSize();
+    array[current_size] = {items[i].first, items[i].second};
     auto *page = buffer_pool_manager->FetchPage(items[i].second);
     BPlusTreePage* temp = reinterpret_cast<BPlusTreeInternalPage *> (page->GetData());
     temp->SetParentPageId(GetPageId());
     buffer_pool_manager->UnpinPage(items[i].second, true);
+    IncreaseSize(1);
   }
-  IncreaseSize(size);
 }
 
 /*****************************************************************************
@@ -211,7 +214,6 @@ ValueType B_PLUS_TREE_INTERNAL_PAGE_TYPE::RemoveAndReturnOnlyChild() {
   assert(GetSize() == 2);
   IncreaseSize(-1);
   return ValueAt(0);
-  return INVALID_PAGE_ID;
 }
 /*****************************************************************************
  * MERGE
@@ -225,7 +227,24 @@ ValueType B_PLUS_TREE_INTERNAL_PAGE_TYPE::RemoveAndReturnOnlyChild() {
  */
 INDEX_TEMPLATE_ARGUMENTS
 void B_PLUS_TREE_INTERNAL_PAGE_TYPE::MoveAllTo(BPlusTreeInternalPage *recipient, const KeyType &middle_key,
-                                               BufferPoolManager *buffer_pool_manager) {}
+                                               BufferPoolManager *buffer_pool_manager) {
+  // TODO: include the first invalid kv pair? (it is include right now)
+  // TODO: also the relative position is after the recipient
+  // i think i should delete the middle value from parent
+  recipient->CopyNFrom(array, GetSize(), buffer_pool_manager);
+  Page* page = buffer_pool_manager->FetchPage(GetPageId());
+  BPlusTreeInternalPage* parent_page = reinterpret_cast<BPlusTreeInternalPage*>(page->GetData());
+  int middle_index;
+  for (int i = 0; i < parent_page->GetSize(); i++) {
+    // 没有运算符重载过 ==
+    if(parent_page->KeyAt(i) == middle_key) {
+      middle_index = i;
+      break;
+    }
+  }
+  parent_page->Remove(middle_index);
+  buffer_pool_manager->UnpinPage(GetParentPageId());
+}
 
 /*****************************************************************************
  * REDISTRIBUTE
