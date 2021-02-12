@@ -99,9 +99,8 @@ void BPLUSTREE_TYPE::StartNewTree(const KeyType &key, const ValueType &value) {
     // TODO: throw exeption
   }
   auto* root = reinterpret_cast<BPlusTreeLeafPage<KeyType, ValueType, KeyComparator>*> (root_page->GetData());
-  // what for?
-  root->Init();
-
+  root->Init(root_page_id_, INVALID_PAGE_ID);
+  root->Insert(key, value, comparator_);
 }
 
 /*
