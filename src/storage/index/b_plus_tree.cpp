@@ -16,6 +16,8 @@
 #include "storage/index/b_plus_tree.h"
 #include "storage/page/header_page.h"
 
+
+// TODO: check method in buffer_pool_manager whether return nullptr in some case;
 namespace bustub {
 INDEX_TEMPLATE_ARGUMENTS
 BPLUSTREE_TYPE::BPlusTree(std::string name, BufferPoolManager *buffer_pool_manager, const KeyComparator &comparator,
@@ -31,7 +33,7 @@ BPLUSTREE_TYPE::BPlusTree(std::string name, BufferPoolManager *buffer_pool_manag
  * Helper function to decide whether current b+tree is empty
  */
 INDEX_TEMPLATE_ARGUMENTS
-bool BPLUSTREE_TYPE::IsEmpty() const { return true; }
+bool BPLUSTREE_TYPE::IsEmpty() const { return root_page_id_ == INVALID_PAGE_ID; }
 /*****************************************************************************
  * SEARCH
  *****************************************************************************/
@@ -42,7 +44,21 @@ bool BPLUSTREE_TYPE::IsEmpty() const { return true; }
  */
 INDEX_TEMPLATE_ARGUMENTS
 bool BPLUSTREE_TYPE::GetValue(const KeyType &key, std::vector<ValueType> *result, Transaction *transaction) {
-  return false;
+  bool ret = false;
+  Page* leaf_page = FindLeafPage(key, false);
+  if (leaf_page == nullptr) {
+    return false;
+  }
+  auto* page_content = reinterpret_cast<BPlusTreeLeafPage<KeyType, ValueType, KeyComparator>*> (leaf_page->GetData());
+  ValueType* value = new ValueType;
+  if (page_content ->Lookup(key, value, comparator_)) {
+    result->push_back(*value);
+    ret = true;
+  } else {
+    delete value;
+  }
+  buffer_pool_manager_->UnpinPage(leaf_page->GetPageId(), false);
+  return ret;
 }
 
 /*****************************************************************************
@@ -56,7 +72,20 @@ bool BPLUSTREE_TYPE::GetValue(const KeyType &key, std::vector<ValueType> *result
  * keys return false, otherwise return true.
  */
 INDEX_TEMPLATE_ARGUMENTS
-bool BPLUSTREE_TYPE::Insert(const KeyType &key, const ValueType &value, Transaction *transaction) { return false; }
+bool BPLUSTREE_TYPE::Insert(const KeyType &key, const ValueType &value, Transaction *transaction) {
+  if (IsEmpty()) {
+    StartNewTree(key, value);
+    UpdateRootPageId(1); // todo: IDK
+  } else {
+    std::vector<ValueType> *temp = new std::vector<ValueType>;
+    if (GetValue(key, temp, transaction)) {
+      delete temp;
+      return false;
+    }
+    InsertIntoLeaf(key, value, transaction);
+  }
+  return true;
+}
 /*
  * Insert constant key & value pair into an empty tree
  * User needs to first ask for new page from buffer pool manager(NOTICE: throw
@@ -64,7 +93,16 @@ bool BPLUSTREE_TYPE::Insert(const KeyType &key, const ValueType &value, Transact
  * tree's root page id and insert entry directly into leaf page.
  */
 INDEX_TEMPLATE_ARGUMENTS
-void BPLUSTREE_TYPE::StartNewTree(const KeyType &key, const ValueType &value) {}
+void BPLUSTREE_TYPE::StartNewTree(const KeyType &key, const ValueType &value) {
+  Page* root_page = buffer_pool_manager_->NewPage(&root_page_id_);
+  if (root_page == nullptr) {
+    // TODO: throw exeption
+  }
+  auto* root = reinterpret_cast<BPlusTreeLeafPage<KeyType, ValueType, KeyComparator>*> (root_page->GetData());
+  // what for?
+  root->Init();
+
+}
 
 /*
  * Insert constant key & value pair into leaf page
